@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["index.ts", "src/container.ts", "src/decorators.ts", "src/router.ts"]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "nestbox-core",
+  "version": "0.1.2",
+  "description": "NestJS-style decorators, DI container and router for Fastify + TypeBox.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "fastify",
+    "nestjs",
+    "typebox",
+    "decorators",
+    "dependency-injection",
+    "ioc"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@sinclair/typebox": ">=0.34.0",
+    "fastify": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@sinclair/typebox": "^0.34.49",
+    "fastify": "^5.8.5",
+    "typescript": "^6.0.3"
+  }
+}
