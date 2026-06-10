@@ -18,4 +18,4 @@ serialization, **and** static types from a single source.
 
 ## Install
 
-> 📦 **Starter pack coming soon** — a scaffolding tool and example project will be available shortly to help you get started quickly.
+> 📦 **Starter pack** — [`create-nestbox`](https://www.npmjs.com/package/create-nestbox).
