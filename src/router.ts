@@ -8,6 +8,7 @@ import {
   resolveArg,
   RouteDefinition,
 } from "./decorators.js";
+import { Reflector } from "./reflector.js";
 
 function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
   const routes: RouteDefinition[] = [];
@@ -16,7 +17,7 @@ function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
     const fn = ControllerClass.prototype[key];
 
     if (typeof fn === 'function' && key !== 'constructor') {
-      const route: RouteDefinition | undefined = fn[METADATA_ROUTES];
+      const route = Reflector.get<RouteDefinition | undefined>(METADATA_ROUTES, fn);
 
       if (route) {
         routes.push(route);
@@ -40,12 +41,12 @@ export function registerControllerRouter(
 ) {
   for (const ControllerClass of controllers) {
     const routes = collectRoutes(ControllerClass);
-    const prefix: string = (ControllerClass as any)[METADATA_CONTROLLER_PREFIX];
+    const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
     const instance = container.resolve(ControllerClass);
 
     for (const route of routes) {
       const fn = instance[route.handler];
-      const params: ParamDefRaw<unknown>[] = fn[METADATA_PARAMS] ?? [];
+      const params = Reflector.get<ParamDefRaw<unknown>[]>(METADATA_PARAMS, fn) ?? [];
 
       const schemaDef = params.find(p => p.from === 'schema');
       const options = schemaDef ? { schema: schemaDef.schema } : {};

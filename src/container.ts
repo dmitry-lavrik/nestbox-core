@@ -1,4 +1,5 @@
 import { METADATA_DI } from "./decorators.js";
+import { Reflector } from "./reflector.js";
 
 export type Constructor<T> = new (...args: any[]) => T
 export interface Token<_> extends Symbol{}
@@ -38,7 +39,7 @@ export class Container{
       throw new Error(`${token} is symbol but has not factory`);
     }
 
-    const meta: Constructor<any>[] | undefined = (token as any)[METADATA_DI];
+    const meta = Reflector.get<Constructor<any>[] | undefined>(METADATA_DI, token);
 
     if(meta === undefined && token.length > 0){
       throw new Error(token.name + ' have constructor Params, but have not @Injectable!');
