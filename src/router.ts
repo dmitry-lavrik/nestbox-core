@@ -64,6 +64,7 @@ export function registerControllerRouter(
 
       const schema: FastifySchema & ApiSchemaDocs = { ...(schemaDef?.schema ?? {}) };
 
+      // Setup data from api helpers for fastify swagger
       if(tag){
         schema.tags = [tag.name];
       }
