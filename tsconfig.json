@@ -12,5 +12,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["index.ts", "src/container.ts", "src/decorators.ts", "src/router.ts"]
+  "include": ["index.ts", "src/**/*.ts"]
 }

@@ -7,19 +7,19 @@ import {
   ParamDefRaw,
   resolveArg,
   RouteDefinition,
-} from "./decorators.js";
+} from "./decorators/index.js";
 import { Reflector } from "./reflector.js";
 
 function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
   const routes: RouteDefinition[] = [];
 
-  for (const key of Object.getOwnPropertyNames(ControllerClass.prototype)) {
+  for(const key of Object.getOwnPropertyNames(ControllerClass.prototype)){
     const fn = ControllerClass.prototype[key];
 
-    if (typeof fn === 'function' && key !== 'constructor') {
+    if(typeof fn === 'function' && key !== 'constructor'){
       const route = Reflector.get<RouteDefinition | undefined>(METADATA_ROUTES, fn);
 
-      if (route) {
+      if(route){
         routes.push(route);
       }
     }
@@ -39,12 +39,12 @@ export function registerControllerRouter(
   controllers: Constructor<any>[],
   container: Container,
 ) {
-  for (const ControllerClass of controllers) {
+  for(const ControllerClass of controllers){
     const routes = collectRoutes(ControllerClass);
     const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
     const instance = container.resolve(ControllerClass);
 
-    for (const route of routes) {
+    for(const route of routes){
       const fn = instance[route.handler];
       const params = Reflector.get<ParamDefRaw<unknown>[]>(METADATA_PARAMS, fn) ?? [];
 
@@ -58,7 +58,7 @@ export function registerControllerRouter(
           const args = params.map(p => resolveArg(p, req, resp, container));
           const result = await instance[route.handler].apply(instance, args);
 
-          if (!resp.sent) {
+          if(!resp.sent){
             resp.send(result);
           }
         }

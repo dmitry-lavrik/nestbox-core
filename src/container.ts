@@ -1,4 +1,4 @@
-import { METADATA_DI } from "./decorators.js";
+import { METADATA_DI } from "./decorators/index.js";
 import { Reflector } from "./reflector.js";
 
 export type Constructor<T> = new (...args: any[]) => T
