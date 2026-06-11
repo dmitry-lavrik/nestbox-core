@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifySchema } from "fastify";
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, FastifySchemaValidationError } from "fastify";
 import { Constructor, Container } from "./container.js";
 import { Reflector } from "./reflector.js";
 import {
@@ -11,6 +11,7 @@ import {
   resolveArg,
   RouteDefinition,
 } from "./decorators/index.js";
+import { BadRequestError, HttpError, UnprocessableEntityError } from "./errors/httpError.js";
 
 /* Same with fastify Swagger */
 interface ApiSchemaDocs {
@@ -97,4 +98,38 @@ export function registerControllerRouter(
       );
     }
   }
+}
+
+interface DefaultErrorHandlerOptions{
+  validationErrorsMapper?: (errors: FastifySchemaValidationError[]) => unknown,
+  validationErrorStatus?: number
+}
+
+export function registerDefaultErrorHandler(app: FastifyInstance, options: DefaultErrorHandlerOptions){
+  const validationErrorsMapper = options.validationErrorsMapper ?? (v => v)
+
+  app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+    if (error.validation) {
+      return reply.code(options.validationErrorStatus ?? 400).send({
+        code: error.code,
+        message: error.message,
+        errors: validationErrorsMapper(error.validation)
+      });
+    }
+
+    if (error instanceof BadRequestError || error instanceof UnprocessableEntityError) {
+      return reply.code(error.statusCode).send({
+        code: error.code,
+        message: error.message,
+        errors: validationErrorsMapper(error.errors)
+      });
+    }
+
+    if (error instanceof HttpError) {
+      return reply.code(error.statusCode).send({ code: error.code, message: error.message });
+    }
+
+    request.log.error(error);
+    return reply.code(500).send({ error: 'Internal Server Error' });
+  })
 }
