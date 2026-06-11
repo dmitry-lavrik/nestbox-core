@@ -1,6 +1,9 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifySchema } from "fastify";
 import { Constructor, Container } from "./container.js";
+import { Reflector } from "./reflector.js";
 import {
+  getApiOperation,
+  getApiTag,
   METADATA_CONTROLLER_PREFIX,
   METADATA_PARAMS,
   METADATA_ROUTES,
@@ -8,7 +11,14 @@ import {
   resolveArg,
   RouteDefinition,
 } from "./decorators/index.js";
-import { Reflector } from "./reflector.js";
+
+/* Same with fastify Swagger */
+interface ApiSchemaDocs {
+  tags?: string[];
+  summary?: string;
+  description?: string;
+  operationId?: string;
+}
 
 function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
   const routes: RouteDefinition[] = [];
@@ -43,13 +53,34 @@ export function registerControllerRouter(
     const routes = collectRoutes(ControllerClass);
     const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
     const instance = container.resolve(ControllerClass);
+    const tag = getApiTag(ControllerClass);
 
     for(const route of routes){
       const fn = instance[route.handler];
       const params = Reflector.get<ParamDefRaw<unknown>[]>(METADATA_PARAMS, fn) ?? [];
 
       const schemaDef = params.find(p => p.from === 'schema');
-      const options = schemaDef ? { schema: schemaDef.schema } : {};
+      const operation = getApiOperation(fn);
+
+      const schema: FastifySchema & ApiSchemaDocs = { ...(schemaDef?.schema ?? {}) };
+
+      if(tag){
+        schema.tags = [tag.name];
+      }
+
+      if(operation){
+        schema.summary = operation.summary;
+
+        if(operation.description){
+          schema.description = operation.description;
+        }
+
+        if(operation.operationId){
+          schema.operationId = operation.operationId;
+        }
+      }
+
+      const options = Object.keys(schema).length > 0 ? { schema } : {};
 
       app[route.method](
         buildUrl(prefix, route.path),
