@@ -121,7 +121,7 @@ export function registerDefaultErrorHandler(app: FastifyInstance, options: Defau
       return reply.code(error.statusCode).send({
         code: error.code,
         message: error.message,
-        errors: validationErrorsMapper(error.errors)
+        errors: error.errors
       });
     }
 

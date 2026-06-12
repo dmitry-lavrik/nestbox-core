@@ -1,4 +1,4 @@
-import type { FastifyError, FastifySchemaValidationError } from "fastify";
+import type { FastifyError } from "fastify";
 
 export class HttpError extends Error implements FastifyError {
   constructor(public statusCode: number, public code: string, message: string) {
@@ -8,7 +8,7 @@ export class HttpError extends Error implements FastifyError {
 }
 
 export class BadRequestError extends HttpError {
-  constructor(message: string, public errors: FastifySchemaValidationError[]) {
+  constructor(message: string, public errors: unknown) {
     super(400, "BAD_REQUEST", message);
   }
 }
@@ -44,7 +44,7 @@ export class ConflictError extends HttpError {
 }
 
 export class UnprocessableEntityError extends HttpError {
-  constructor(message: string, public errors: FastifySchemaValidationError[]) {
+  constructor(message: string, public errors: unknown) {
     super(422, "UNPROCESSABLE_ENTITY", message);
   }
 }
