@@ -51,52 +51,59 @@ export function registerControllerRouter(
   container: Container,
 ) {
   for(const ControllerClass of controllers){
-    const routes = collectRoutes(ControllerClass);
-    const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
-    const instance = container.resolve(ControllerClass);
-    const tag = getApiTag(ControllerClass);
 
-    for(const route of routes){
-      const fn = instance[route.handler];
-      const params = Reflector.get<ParamDefRaw<unknown>[]>(METADATA_PARAMS, fn) ?? [];
+    // Each controller lives in its own encapsulated Fastify scope, so that
+    // controller-level hooks/plugins can be attached to `scope` without leaking
+    // to sibling controllers. URLs are still built by hand (`buildUrl`); we do
+    // not use Fastify's native `prefix` option.
+    app.register(async (scope) => {
+      const routes = collectRoutes(ControllerClass);
+      const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
+      const instance = container.resolve(ControllerClass);
+      const tag = getApiTag(ControllerClass);
 
-      const schemaDef = params.find(p => p.from === 'schema');
-      const operation = getApiOperation(fn);
+      for(const route of routes){
+        const fn = instance[route.handler];
+        const params = Reflector.get<ParamDefRaw<unknown>[]>(METADATA_PARAMS, fn) ?? [];
 
-      const schema: FastifySchema & ApiSchemaDocs = { ...(schemaDef?.schema ?? {}) };
+        const schemaDef = params.find(p => p.from === 'schema');
+        const operation = getApiOperation(fn);
 
-      // Setup data from api helpers for fastify swagger
-      if(tag){
-        schema.tags = [tag.name];
-      }
+        const schema: FastifySchema & ApiSchemaDocs = { ...(schemaDef?.schema ?? {}) };
 
-      if(operation){
-        schema.summary = operation.summary;
-
-        if(operation.description){
-          schema.description = operation.description;
+        // Setup data from api helpers for fastify swagger
+        if(tag){
+          schema.tags = [tag.name];
         }
 
-        if(operation.operationId){
-          schema.operationId = operation.operationId;
-        }
-      }
+        if(operation){
+          schema.summary = operation.summary;
 
-      const options = Object.keys(schema).length > 0 ? { schema } : {};
+          if(operation.description){
+            schema.description = operation.description;
+          }
 
-      app[route.method](
-        buildUrl(prefix, route.path),
-        options,
-        async (req, resp) => {
-          const args = params.map(p => resolveArg(p, req, resp, container));
-          const result = await instance[route.handler].apply(instance, args);
-
-          if(!resp.sent){
-            resp.send(result);
+          if(operation.operationId){
+            schema.operationId = operation.operationId;
           }
         }
-      );
-    }
+
+        const options = Object.keys(schema).length > 0 ? { schema } : {};
+
+        scope[route.method](
+          buildUrl(prefix, route.path),
+          options,
+          async (req, resp) => {
+            const args = params.map(p => resolveArg(p, req, resp, container));
+            const result = await instance[route.handler].apply(instance, args);
+
+            if(!resp.sent){
+              resp.send(result);
+            }
+          }
+        );
+      }
+    });
   }
 }
 
