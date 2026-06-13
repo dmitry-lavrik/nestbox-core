@@ -20,7 +20,7 @@ export class Container{
     }
 
     if(this.resolving.has(token)){
-      throw new Error('Circilar deps \n' + [...this.resolving, token])
+      throw new Error('Circular deps \n' + [...this.resolving, token].map(String).join(' -> '))
     }
 
     this.resolving.add(token);
