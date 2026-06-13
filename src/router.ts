@@ -1,9 +1,11 @@
-import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, FastifySchemaValidationError } from "fastify";
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, FastifySchemaValidationError, RouteShorthandOptions } from "fastify";
 import { Constructor, Container } from "./container.js";
 import { Reflector } from "./reflector.js";
 import {
   getApiOperation,
   getApiTag,
+  getHooks,
+  HooksMap,
   METADATA_CONTROLLER_PREFIX,
   METADATA_PARAMS,
   METADATA_ROUTES,
@@ -45,6 +47,24 @@ function buildUrl(prefix: string, path: string): string {
     .replace(/(.+)\/$/, '$1');
 }
 
+/**
+ * Register every hook in the map onto a Fastify scope. A hook value may be a
+ * single handler or an array of them; `addHook` takes one at a time, so arrays
+ * are spread out.
+ */
+function applyScopeHooks(scope: FastifyInstance, hooks: HooksMap) {
+
+  for(const [name, handler] of Object.entries(hooks)){
+    const handlers = Array.isArray(handler) ? handler : [handler];
+
+    for(const h of handlers){
+      (scope.addHook as any)(name, h);
+    }
+
+  }
+
+}
+
 export function registerControllerRouter(
   app: FastifyInstance,
   controllers: Constructor<any>[],
@@ -61,6 +81,13 @@ export function registerControllerRouter(
       const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
       const instance = container.resolve(ControllerClass);
       const tag = getApiTag(ControllerClass);
+      const controllerHooks = getHooks(ControllerClass);
+
+      // Controller-level hooks live on the scope, so they apply to every route
+      // of this controller and nothing outside it.
+      if(controllerHooks){
+        applyScopeHooks(scope, controllerHooks);
+      }
 
       for(const route of routes){
         const fn = instance[route.handler];
@@ -88,7 +115,14 @@ export function registerControllerRouter(
           }
         }
 
-        const options = Object.keys(schema).length > 0 ? { schema } : {};
+        // Route-level hooks are merged straight into the route options, which is
+        // how Fastify natively accepts per-route hooks alongside the schema.
+        const routeHooks = getHooks(fn) ?? {};
+        const options: RouteShorthandOptions = { ...routeHooks };
+
+        if(Object.keys(schema).length > 0){
+          options.schema = schema;
+        }
 
         scope[route.method](
           buildUrl(prefix, route.path),
