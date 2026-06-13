@@ -25,7 +25,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test \".test-build/test/**/*.test.js\""
   },
   "peerDependencies": {
     "@sinclair/typebox": ">=0.34.0",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.49",
+    "@types/node": "^25.9.3",
     "fastify": "^5.8.5",
     "typescript": "^6.0.3"
   }
