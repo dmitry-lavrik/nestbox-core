@@ -2,7 +2,9 @@ import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest, Fasti
 import { Constructor, Container } from "./container.js";
 import { Reflector } from "./reflector.js";
 import {
+  ApiSecurityRequirement,
   getApiOperation,
+  getApiSecurity,
   getApiTag,
   getHooks,
   HooksMap,
@@ -21,6 +23,7 @@ interface ApiSchemaDocs {
   summary?: string;
   description?: string;
   operationId?: string;
+  security?: ApiSecurityRequirement[];
 }
 
 function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
@@ -53,16 +56,13 @@ function buildUrl(prefix: string, path: string): string {
  * are spread out.
  */
 function applyScopeHooks(scope: FastifyInstance, hooks: HooksMap) {
-
   for(const [name, handler] of Object.entries(hooks)){
     const handlers = Array.isArray(handler) ? handler : [handler];
 
     for(const h of handlers){
       (scope.addHook as any)(name, h);
     }
-
   }
-
 }
 
 export function registerControllerRouter(
@@ -81,6 +81,7 @@ export function registerControllerRouter(
       const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
       const instance = container.resolve(ControllerClass);
       const tag = getApiTag(ControllerClass);
+      const controllerSecurity = getApiSecurity(ControllerClass);
       const controllerHooks = getHooks(ControllerClass);
 
       // Controller-level hooks live on the scope, so they apply to every route
@@ -113,6 +114,13 @@ export function registerControllerRouter(
           if(operation.operationId){
             schema.operationId = operation.operationId;
           }
+        }
+
+        // Route-level security overrides the controller-level default
+        const security = getApiSecurity(fn) ?? controllerSecurity;
+
+        if(security){
+          schema.security = security;
         }
 
         // Route-level hooks are merged straight into the route options, which is
