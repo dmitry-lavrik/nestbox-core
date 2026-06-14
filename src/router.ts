@@ -8,6 +8,7 @@ import {
   getApiTag,
   getHooks,
   HooksMap,
+  HttpMethod,
   METADATA_CONTROLLER_PREFIX,
   METADATA_PARAMS,
   METADATA_ROUTES,
@@ -95,11 +96,29 @@ function applyScopeHooks(scope: FastifyInstance, hooks: HooksMap) {
   }
 }
 
+// Record a route's method+url and fail loud on an exact collision, naming both
+// controllers. Fastify also rejects duplicates (FST_ERR_DUPLICATED_ROUTE) but its
+// message only knows the url; this catches the common exact-match case earlier
+// with the conflicting controller names. Parametric collisions (e.g. /:id vs
+// /:userId) are not string-equal here and still fall through to Fastify's check.
+function trackRoute(seen: Map<string, string>, method: HttpMethod, url: string, controllerName: string): void {
+  const key = `${method.toUpperCase()} ${url}`;
+  const existing = seen.get(key);
+
+  if(existing !== undefined){
+    throw new Error(`Duplicate route ${key}: declared by both "${existing}" and "${controllerName}".`);
+  }
+
+  seen.set(key, controllerName);
+}
+
 export function registerControllerRouter(
   app: FastifyInstance,
   controllers: Constructor<any>[],
   container: Container,
 ) {
+  const seenRoutes = new Map<string, string>();
+
   for(const ControllerClass of controllers){
 
     // Each controller lives in its own encapsulated Fastify scope, so that
@@ -167,8 +186,12 @@ export function registerControllerRouter(
           options.schema = schema;
         }
 
+        const url = buildUrl(prefix, route.path);
+
+        trackRoute(seenRoutes, route.method, url, ControllerClass.name);
+
         scope[route.method](
-          buildUrl(prefix, route.path),
+          url,
           options,
           async (req, resp) => {
             const args = params.map(p => resolveArg(p, req, resp, container));

@@ -55,6 +55,40 @@ test('a class without @Controller throws at setup', async () => {
   await app.close();
 });
 
+// Two controllers produce the exact same method+url. We detect the collision
+// before Fastify does and name both controllers in the error.
+@Controller('dup')
+class DupAController {
+  @Get('/x')
+  x() {
+    return { from: 'A' };
+  }
+}
+
+@Controller('dup')
+class DupBController {
+  @Get('/x')
+  x() {
+    return { from: 'B' };
+  }
+}
+
+test('a duplicate method+url across controllers throws naming both controllers', async () => {
+  const app = Fastify();
+
+  await assert.rejects(
+    nestbox({ app, controllers: [DupAController, DupBController] }).setup(),
+    (err: Error) => {
+      assert.match(err.message, /Duplicate route GET \/dup\/x/);
+      assert.match(err.message, /DupAController/);
+      assert.match(err.message, /DupBController/);
+      return true;
+    },
+  );
+
+  await app.close();
+});
+
 test('a route decorator on a symbol-named method throws at decoration', () => {
   const handlerSymbol = Symbol('handler');
 

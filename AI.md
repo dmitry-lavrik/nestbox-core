@@ -121,8 +121,12 @@ create(req: ValidatedRequest<typeof createSchema>) {
 `RouteSchema` parts are TypeBox schemas: `{ body?, querystring?, params?, headers?, response? }`
 (`response` keyed by status code). Notes:
 
-- Validation is AJV; outbound serialization only emits declared `response` properties —
-  use `additionalProperties: false` to strip fields.
+- Input validation is AJV: set `additionalProperties: false` to **reject** unexpected
+  request fields (AJV otherwise neither strips nor rejects them).
+- Output serialization is `fast-json-stringify`: it emits **only** the declared `response`
+  properties, so undeclared fields are stripped whenever a `response` schema exists —
+  `additionalProperties: false` is not needed for that. With **no** response schema the raw
+  object is sent verbatim, so extra ("private") fields leak.
 - Type the handler arg with `ValidatedRequest<typeof yourSchema>`. The **`querystring`**
   schema key surfaces as the **`query`** property on the request.
 - Mixing helpers is fine — order args to match: `@Params(schema(s), reply())` →

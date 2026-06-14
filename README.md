@@ -220,8 +220,13 @@ A `RouteSchema` accepts these TypeBox parts:
 `{ body?, querystring?, params?, headers?, response? }` (with `response` keyed by
 status code). Two things worth remembering:
 
-- Use `additionalProperties: false` to **strip** unexpected fields — on input
-  (rejected by validation) and on output (omitted by serialization).
+- **Input:** set `additionalProperties: false` to **reject** unexpected request
+  fields — AJV neither strips nor rejects them otherwise.
+- **Output:** declaring a `response` schema strips undeclared fields on its own —
+  `fast-json-stringify` only emits the declared properties, so
+  `additionalProperties: false` is not needed there. Beware the inverse: with
+  **no** response schema, the raw returned object is sent and any extra
+  ("private") fields leak.
 - The schema's `querystring` key surfaces on the request as **`query`**
   (`req.query`), matching Fastify.
 
