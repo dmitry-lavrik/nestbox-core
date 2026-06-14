@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import type { Static, TSchema } from '@sinclair/typebox';
 import { Container } from '../container.js';
 
-export const METADATA_PARAMS = Symbol('METADATA_RARAMS');
+export const METADATA_PARAMS = Symbol('PARAMS');
 
 export type ParamDefRequest<_Output = FastifyRequest> = {
   from: 'request'

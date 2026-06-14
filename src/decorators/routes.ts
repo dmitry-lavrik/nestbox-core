@@ -6,7 +6,7 @@ export interface RouteDefinition {
   handler: string;
 }
 
-export const METADATA_ROUTES = Symbol();
+export const METADATA_ROUTES = Symbol('ROUTES');
 
 function createRouteDecorator(method: HttpMethod){
   return (path: string = '/') => {
