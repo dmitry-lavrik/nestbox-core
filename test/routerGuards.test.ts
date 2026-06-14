@@ -1,0 +1,55 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import Fastify from 'fastify';
+import { Controller, Get, nestbox } from '../index.js';
+
+// A base controller that carries a decorated route. Controller inheritance is
+// deliberately unsupported, so a child extending this must fail loud rather than
+// silently dropping the inherited route.
+@Controller('base')
+class BaseRouteController {
+  @Get('/inherited')
+  inherited() {
+    return { ok: 'inherited' };
+  }
+}
+
+@Controller('child')
+class ChildController extends BaseRouteController {
+  @Get('/own')
+  own() {
+    return { ok: 'own' };
+  }
+}
+
+test('a controller inheriting a decorated route throws at setup', async () => {
+  const app = Fastify();
+
+  // The throw happens inside collectRoutes, which avvio runs during app.ready(),
+  // so setup() rejects.
+  await assert.rejects(
+    nestbox({ app, controllers: [ChildController] }).setup(),
+    /Controller inheritance is not supported/,
+  );
+
+  await app.close();
+});
+
+test('a route decorator on a symbol-named method throws at decoration', () => {
+  const handlerSymbol = Symbol('handler');
+
+  assert.throws(
+    () => {
+      @Controller('symbol')
+      class SymbolController {
+        @Get('/')
+        [handlerSymbol]() {
+          return { ok: 'symbol' };
+        }
+      }
+
+      return SymbolController;
+    },
+    /symbol-named methods/,
+  );
+});

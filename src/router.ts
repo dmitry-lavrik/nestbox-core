@@ -26,11 +26,39 @@ interface ApiSchemaDocs {
   security?: ApiSecurityRequirement[];
 }
 
+// Controller inheritance is unsupported. Fail loud if a base class carries a
+// decorated route, since own-prototype scanning would silently drop it.
+function assertNoInheritedRoutes(ControllerClass: Constructor<any>): void {
+  let proto = Object.getPrototypeOf(ControllerClass.prototype);
+
+  while(proto && proto !== Object.prototype){
+
+    for(const key of Object.getOwnPropertyNames(proto)){
+      const fn = proto[key];
+
+      if(typeof fn === 'function' && key !== 'constructor'){
+        const route = Reflector.get<RouteDefinition | undefined>(METADATA_ROUTES, fn);
+
+        if(route){
+          throw new Error(
+            `Controller "${ControllerClass.name}" inherits route "${route.method.toUpperCase()} ${route.path}" ` +
+            `(handler "${route.handler}") from a base class. Controller inheritance is not supported — ` +
+            `declare routes directly on the controller class.`
+          );
+        }
+      }
+    }
+
+    proto = Object.getPrototypeOf(proto);
+  }
+}
+
 function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
   const routes: RouteDefinition[] = [];
+  const ownPrototype = ControllerClass.prototype;
 
-  for(const key of Object.getOwnPropertyNames(ControllerClass.prototype)){
-    const fn = ControllerClass.prototype[key];
+  for(const key of Object.getOwnPropertyNames(ownPrototype)){
+    const fn = ownPrototype[key];
 
     if(typeof fn === 'function' && key !== 'constructor'){
       const route = Reflector.get<RouteDefinition | undefined>(METADATA_ROUTES, fn);
@@ -40,6 +68,8 @@ function collectRoutes(ControllerClass: Constructor<any>): RouteDefinition[] {
       }
     }
   }
+
+  assertNoInheritedRoutes(ControllerClass);
 
   return routes;
 }

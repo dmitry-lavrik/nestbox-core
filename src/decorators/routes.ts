@@ -3,7 +3,7 @@ export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 export interface RouteDefinition {
   method: HttpMethod;
   path: string;
-  handler: string | symbol;
+  handler: string;
 }
 
 export const METADATA_ROUTES = Symbol();
@@ -11,6 +11,11 @@ export const METADATA_ROUTES = Symbol();
 function createRouteDecorator(method: HttpMethod){
   return (path: string = '/') => {
     return (fn: (...args: any[]) => any, ctx: ClassMethodDecoratorContext) => {
+
+      if(typeof ctx.name === 'symbol'){
+        throw new Error(`Route decorators cannot be applied to symbol-named methods (${String(ctx.name)}).`);
+      }
+
       (fn as any)[METADATA_ROUTES] = {
         method,
         path,
