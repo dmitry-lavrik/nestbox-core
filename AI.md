@@ -83,6 +83,9 @@ class UsersController {
 }
 ```
 
+- **Singletons only — no request scope.** No NestJS-style `Scope.REQUEST`; every
+  instance is cached for the app lifetime. Pass per-request data as handler args
+  (`request()` via `@Params`, or `request.server.nestbox.container` in a hook).
 - **Always** put `@Injectable([...])` on any class with constructor params (controllers included).
 - Non-class providers: `const T = createToken<X>('x')`, then `boot(c => c.bind(T, () => x))`,
   and list `T` in the consumer's `@Injectable([T])`.

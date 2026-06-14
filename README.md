@@ -142,6 +142,13 @@ class GreetController {
 > arguments but isn't `@Injectable`, if the token array is shorter than the
 > constructor, or if it detects a circular dependency.
 
+> **Singleton-only by design — no request scope.** Every provider is resolved
+> once and cached for the app's lifetime; there is no NestJS-style
+> `Scope.REQUEST`. Per-request data travels as handler arguments instead: inject
+> `request()` via `@Params`, or reach a service from a hook through
+> `request.server.nestbox.container`. This is deliberate — it avoids the
+> contagious performance cost of request-scoped DI.
+
 ### Non-class providers
 
 For values that aren't classes (a config object, a third-party client, a
