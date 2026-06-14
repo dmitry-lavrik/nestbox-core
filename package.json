@@ -1,8 +1,17 @@
 {
   "name": "nestbox-core",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "NestJS-style decorators, DI container and router for Fastify + TypeBox.",
+  "author": "Dmitry Lavrik",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmitry-lavrik/nestbox-core.git"
+  },
+  "homepage": "https://github.com/dmitry-lavrik/nestbox-core#readme",
+  "bugs": {
+    "url": "https://github.com/dmitry-lavrik/nestbox-core/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
