@@ -2,6 +2,23 @@ import type { FastifyInstance } from "fastify";
 import { Constructor, Container } from "./container.js";
 import { registerControllerRouter } from "./router.js";
 
+/**
+ * The object decorated onto the Fastify instance under the `nestbox` namespace.
+ * Namespaced (rather than a bare `container`) so it can't collide with a
+ * decorator from an external plugin, and so new fields can be appended later
+ * without re-decorating. Visible in every controller scope (Fastify inherits
+ * root decorators into child scopes) and in any hook via `request.server.nestbox`.
+ */
+export interface NestboxDecorator {
+  container: Container;
+}
+
+declare module "fastify" {
+  interface FastifyInstance {
+    nestbox: NestboxDecorator;
+  }
+}
+
 export interface NestboxConfig {
   /**
    * A Fastify instance the consuming app has already built and configured
@@ -47,6 +64,14 @@ export class Nestbox {
    * routes are live. Resolves to the running-capable Fastify instance.
    */
   async setup(): Promise<FastifyInstance> {
+    // Expose the container to request-time code (hooks resolve services via
+    // `request.server.nestbox.container`). Decorated on the root so every
+    // controller scope inherits it.
+    if(this.app.hasDecorator("nestbox")){
+      throw new Error("The `nestbox` decorator name is already taken — another plugin is using our core name.");
+    }
+
+    this.app.decorate("nestbox", { container: this.container });
     registerControllerRouter(this.app, this.controllers, this.container);
     await this.app.ready();
     return this.app;
