@@ -64,9 +64,10 @@ export class Nestbox {
    * routes are live. Resolves to the running-capable Fastify instance.
    */
   async setup(): Promise<FastifyInstance> {
-    // Expose the container to request-time code (hooks resolve services via
-    // `request.server.nestbox.container`). Decorated on the root so every
-    // controller scope inherits it.
+    /**
+     * Expose the container to request-time code, decorated on the root so every
+     * controller scope inherits it (hooks reach `request.server.nestbox.container`).
+     */
     if(this.app.hasDecorator("nestbox")){
       throw new Error("The `nestbox` decorator name is already taken — another plugin is using our core name.");
     }

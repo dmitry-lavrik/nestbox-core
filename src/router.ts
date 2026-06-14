@@ -27,8 +27,10 @@ interface ApiSchemaDocs {
   security?: ApiSecurityRequirement[];
 }
 
-// Controller inheritance is unsupported. Fail loud if a base class carries a
-// decorated route, since own-prototype scanning would silently drop it.
+/**
+ * Controller inheritance is unsupported. Fail loud if a base class carries a
+ * decorated route, since own-prototype scanning would silently drop it.
+ */
 function assertNoInheritedRoutes(ControllerClass: Constructor<any>): void {
   let proto = Object.getPrototypeOf(ControllerClass.prototype);
 
@@ -82,9 +84,8 @@ function buildUrl(prefix: string, path: string): string {
 }
 
 /**
- * Register every hook in the map onto a Fastify scope. A hook value may be a
- * single handler or an array of them; `addHook` takes one at a time, so arrays
- * are spread out.
+ * Register every hook in the map onto a Fastify scope. Array values are spread,
+ * since `addHook` takes one handler at a time.
  */
 function applyScopeHooks(scope: FastifyInstance, hooks: HooksMap) {
   for(const [name, handler] of Object.entries(hooks)){
@@ -96,11 +97,10 @@ function applyScopeHooks(scope: FastifyInstance, hooks: HooksMap) {
   }
 }
 
-// Record a route's method+url and fail loud on an exact collision, naming both
-// controllers. Fastify also rejects duplicates (FST_ERR_DUPLICATED_ROUTE) but its
-// message only knows the url; this catches the common exact-match case earlier
-// with the conflicting controller names. Parametric collisions (e.g. /:id vs
-// /:userId) are not string-equal here and still fall through to Fastify's check.
+/**
+ * Record a route's method+url and fail loud on an exact collision, naming both
+ * controllers. Parametric collisions still fall through to Fastify's own check.
+ */
 function trackRoute(seen: Map<string, string>, method: HttpMethod, url: string, controllerName: string): void {
   const key = `${method.toUpperCase()} ${url}`;
   const existing = seen.get(key);
@@ -121,10 +121,10 @@ export function registerControllerRouter(
 
   for(const ControllerClass of controllers){
 
-    // Each controller lives in its own encapsulated Fastify scope, so that
-    // controller-level hooks/plugins can be attached to `scope` without leaking
-    // to sibling controllers. URLs are still built by hand (`buildUrl`); we do
-    // not use Fastify's native `prefix` option.
+    /**
+     * Each controller gets its own encapsulated Fastify scope, so controller-level
+     * hooks don't leak to siblings. URLs are built by hand, not via Fastify prefix.
+     */
     app.register(async (scope) => {
 
       if(!Reflector.has(METADATA_CONTROLLER_PREFIX, ControllerClass)){
@@ -138,8 +138,10 @@ export function registerControllerRouter(
       const controllerSecurity = getApiSecurity(ControllerClass);
       const controllerHooks = getHooks(ControllerClass);
 
-      // Controller-level hooks live on the scope, so they apply to every route
-      // of this controller and nothing outside it.
+      /**
+       * Controller-level hooks live on the scope, applying to every route of this
+       * controller and nothing outside it.
+       */
       if(controllerHooks){
         applyScopeHooks(scope, controllerHooks);
       }
@@ -177,8 +179,10 @@ export function registerControllerRouter(
           schema.security = security;
         }
 
-        // Route-level hooks are merged straight into the route options, which is
-        // how Fastify natively accepts per-route hooks alongside the schema.
+        /**
+         * Route-level hooks merge into the route options — Fastify's native
+         * per-route mechanism, alongside the schema.
+         */
         const routeHooks = getHooks(fn) ?? {};
         const options: RouteShorthandOptions = { ...routeHooks };
 
