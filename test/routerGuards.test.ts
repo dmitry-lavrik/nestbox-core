@@ -35,6 +35,26 @@ test('a controller inheriting a decorated route throws at setup', async () => {
   await app.close();
 });
 
+// A class with routes but no @Controller decorator: prefix metadata is absent,
+// which previously produced a "/undefined/..." mount. Must fail loud instead.
+class UndecoratedController {
+  @Get('/orphan')
+  orphan() {
+    return { ok: 'orphan' };
+  }
+}
+
+test('a class without @Controller throws at setup', async () => {
+  const app = Fastify();
+
+  await assert.rejects(
+    nestbox({ app, controllers: [UndecoratedController] }).setup(),
+    /is missing the @Controller decorator/,
+  );
+
+  await app.close();
+});
+
 test('a route decorator on a symbol-named method throws at decoration', () => {
   const handlerSymbol = Symbol('handler');
 

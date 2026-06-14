@@ -107,6 +107,11 @@ export function registerControllerRouter(
     // to sibling controllers. URLs are still built by hand (`buildUrl`); we do
     // not use Fastify's native `prefix` option.
     app.register(async (scope) => {
+
+      if(!Reflector.has(METADATA_CONTROLLER_PREFIX, ControllerClass)){
+        throw new Error(`Class "${ControllerClass.name}" is missing the @Controller decorator.`);
+      }
+
       const routes = collectRoutes(ControllerClass);
       const prefix = Reflector.get<string>(METADATA_CONTROLLER_PREFIX, ControllerClass);
       const instance = container.resolve(ControllerClass);
