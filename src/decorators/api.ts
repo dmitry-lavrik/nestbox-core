@@ -87,7 +87,11 @@ export function compileApiTags(controllers: Constructor<unknown>[]): ApiTagDefin
     const parts = new Set(existing.description ? existing.description.split('\n') : []);
 
     if(tag.description){
-      parts.add(tag.description);
+
+      for(const line of tag.description.split('\n')){
+        parts.add(line);
+      }
+
     }
 
     existing.description = [...parts].join('\n') || undefined;

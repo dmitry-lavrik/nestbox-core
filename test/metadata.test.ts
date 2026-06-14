@@ -9,6 +9,7 @@ import {
   Controller,
   Params,
   Post,
+  compileApiTags,
   registerControllerRouter,
   RouteSchema,
   ValidatedRequest,
@@ -29,6 +30,21 @@ class UsersController {
     return req.body;
   }
 }
+
+// Two controllers share a tag name with the same lines in different order. The
+// merge must dedup line-by-line on both sides, not add the incoming one whole.
+@ApiTag({ name: 'Shared', description: 'a\nb' })
+class SharedTagOne {}
+
+@ApiTag({ name: 'Shared', description: 'b\na' })
+class SharedTagTwo {}
+
+test('compileApiTags dedups multi-line descriptions regardless of line order', () => {
+  const tags = compileApiTags([SharedTagOne, SharedTagTwo]);
+
+  assert.equal(tags.length, 1, 'tags sharing a name collapse to one');
+  assert.deepEqual(tags[0].description!.split('\n'), ['a', 'b'], 'lines deduped, no whole-blob leftover');
+});
 
 test('schema, @ApiTag and @ApiOperation are attached to the registered route', async () => {
   const app = Fastify();
