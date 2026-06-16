@@ -127,6 +127,11 @@ create(req: ValidatedRequest<typeof createSchema>) {
   properties, so undeclared fields are stripped whenever a `response` schema exists —
   `additionalProperties: false` is not needed for that. With **no** response schema the raw
   object is sent verbatim, so extra ("private") fields leak.
+- **Do NOT write `additionalProperties: true` on a `response` schema.** AJV never sees the
+  response — `fast-json-stringify` does — so nothing rejects it; it is obeyed, and the
+  serializer then leaks every undeclared field. It silently converts a stripping schema into
+  a leaking one (worse than no schema, since it looks guarded). On output, `true` is always
+  wrong.
 - Type the handler arg with `ValidatedRequest<typeof yourSchema>`. The **`querystring`**
   schema key surfaces as the **`query`** property on the request.
 - Mixing helpers is fine — order args to match: `@Params(schema(s), reply())` →

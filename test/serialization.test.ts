@@ -20,6 +20,12 @@ const withResponseSchemaNoAdditional = {
   },
 };
 
+const withResponseSchemaAdditionalTrue = {
+  response: {
+    200: Type.Object({ id: Type.String() }, { additionalProperties: true }),
+  },
+};
+
 @Controller('serialize')
 class SerializeController {
   // A response schema is present but does NOT set additionalProperties: false.
@@ -33,6 +39,13 @@ class SerializeController {
   @Get('/schema-no-additional')
   @Params(schema(withResponseSchemaNoAdditional))
   schemaNoAdditional() {
+    return { id: '1', secret: 'LEAK' };
+  }
+
+  // A response schema present WITH additionalProperties: true.
+  @Get('/schema-additional-true')
+  @Params(schema(withResponseSchemaAdditionalTrue))
+  schemaAdditionalTrue() {
     return { id: '1', secret: 'LEAK' };
   }
 
@@ -61,6 +74,27 @@ test('additionalProperties: false on the response is a no-op (same stripping)', 
   const body = (await app.inject({ method: 'GET', url: '/serialize/schema-no-additional' })).json();
 
   assert.deepEqual(body, { id: '1' }, 'stripping is identical with or without additionalProperties: false');
+
+  await app.close();
+});
+
+/**
+ * Response schemas drive fast-json-stringify, NOT AJV — AJV only ever sees the
+ * request side. So additionalProperties: true is not rejected; it is honored by
+ * the serializer, which then emits the undeclared fields and leaks them.
+ */
+test('additionalProperties: true on the response is honored and leaks undeclared fields', async () => {
+  const app = Fastify();
+  await nestbox({ app, controllers: [SerializeController] }).setup();
+
+  const res = await app.inject({ method: 'GET', url: '/serialize/schema-additional-true' });
+
+  assert.equal(res.statusCode, 200, 'AJV does not see the response schema, so it cannot reject it');
+  assert.deepEqual(
+    res.json(),
+    { id: '1', secret: 'LEAK' },
+    'additionalProperties: true tells fast-json-stringify to pass extra fields through',
+  );
 
   await app.close();
 });

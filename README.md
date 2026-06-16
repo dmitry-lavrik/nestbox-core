@@ -227,6 +227,12 @@ status code). Two things worth remembering:
   `additionalProperties: false` is not needed there. Beware the inverse: with
   **no** response schema, the raw returned object is sent and any extra
   ("private") fields leak.
+- **Never put `additionalProperties: true` on a `response` schema.** The response
+  side runs through `fast-json-stringify`, not AJV — there is nothing to "reject"
+  it, so it is honored: the serializer then passes every undeclared field
+  straight through. That quietly turns a stripping schema into a leaking one,
+  which is worse than no schema at all because it *looks* like the fields are
+  guarded. It is never what you want on output.
 - The schema's `querystring` key surfaces on the request as **`query`**
   (`req.query`), matching Fastify.
 
