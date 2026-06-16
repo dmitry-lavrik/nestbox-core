@@ -255,6 +255,34 @@ raw(req: FastifyRequest, res: FastifyReply) {
 - `reply()` → the raw `FastifyReply` (status, headers, cookies, manual send)
 - `container()` → the DI `Container`, to resolve a service inside a method
 - `schema(routeSchema)` → register the route schema **and** inject the validated request
+- `custom(resolve)` → inject whatever your own callback returns (see below)
+
+### Building your own helper — `custom(...)`
+
+`custom(resolve)` is the escape hatch for app-specific injection. The resolver
+receives `(request, reply, container)` and returns the value to inject at that
+position — sync or async (an async resolver is awaited before the handler runs).
+The handler argument is typed from the resolver's return type. Wrap it once to get
+a reusable, named helper instead of repeating `request()` + boilerplate in every
+handler:
+
+```ts
+import { custom } from 'nestbox-core';
+
+// Defined once in your app. Pulls the user off the request (set by an auth hook)
+// and resolves a guard from DI:
+const bouncer = () =>
+  custom((req, _reply, container) => container.resolve(Bouncer).forUser(req.user));
+
+@Controller('me')
+class MeController {
+  @Get('/')
+  @Params(bouncer())
+  me(guard: Bouncer) {        // `guard` is typed as Bouncer, inferred from the resolver
+    return guard.whoami();
+  }
+}
+```
 
 ## Hooks (middleware, auth)
 

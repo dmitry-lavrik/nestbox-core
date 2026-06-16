@@ -117,6 +117,10 @@ create(req: ValidatedRequest<typeof createSchema>) {
 - `container()` → the DI `Container`
 - `schema(routeSchema)` → does double duty: registers the Fastify route schema **and**
   injects the validated request at that position.
+- `custom(resolve)` → escape hatch for **your own** helpers. `resolve` is
+  `(request, reply, container) => Output | Promise<Output>`; whatever it returns is
+  injected (async is awaited) and the handler arg is typed as `Output`. Wrap it to
+  make reusable helpers (e.g. `const bouncer = () => custom(...)`).
 
 `RouteSchema` parts are TypeBox schemas: `{ body?, querystring?, params?, headers?, response? }`
 (`response` keyed by status code). Notes:

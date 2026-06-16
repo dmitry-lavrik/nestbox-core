@@ -29,12 +29,40 @@ export type ParamDefSchema<S extends RouteSchema = RouteSchema> = {
   schema: S
 }
 
-export type ParamDefRaw<T> = ParamDefRequest<T> | ParamDefReply<T> | ParamDefContainer<T> | ParamDefSchema;
+/**
+ * The signature a custom resolver implements. It receives the same things the
+ * built-in defs have access to (request, reply, container) and returns the value
+ * to inject at its argument position — sync or async.
+ */
+export type ParamResolver<Output = unknown> = (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  container: Container,
+) => Output | Promise<Output>;
+
+/**
+ * The escape hatch: a param def whose value is produced by a user-supplied
+ * callback. Lets a consuming app build its own `@Params` helpers (e.g. a
+ * `bouncer()` that pulls the user off the request and resolves a guard) without
+ * extending the core's `from` union.
+ */
+export type ParamDefCustom<Output = unknown> = {
+  from: 'custom',
+  resolve: ParamResolver<Output>
+}
+
+export type ParamDefRaw<T> =
+  | ParamDefRequest<T>
+  | ParamDefReply<T>
+  | ParamDefContainer<T>
+  | ParamDefSchema
+  | ParamDefCustom<T>;
 
 export const request = (): ParamDefRequest => ({ from: 'request' })
 export const reply = (): ParamDefReply => ({ from: 'reply' })
 export const container = (): ParamDefContainer => ({ from: 'container' })
 export const schema = <const S extends RouteSchema>(s: S): ParamDefSchema<S> => ({ from: 'schema', schema: s })
+export const custom = <Output>(resolve: ParamResolver<Output>): ParamDefCustom<Output> => ({ from: 'custom', resolve })
 
 export type ValidatedRequest<S extends RouteSchema> = {
   params:  S extends { params: infer P extends TSchema } ? Static<P> : unknown;
@@ -46,6 +74,7 @@ export type ValidatedRequest<S extends RouteSchema> = {
 type ExtractFromDefs<Defs extends ParamDefRaw<any>[]> = {
   [K in keyof Defs]:
     Defs[K] extends ParamDefSchema<infer S> ? ValidatedRequest<S> :
+    Defs[K] extends ParamDefCustom<infer Output> ? Awaited<Output> :
     Defs[K] extends ParamDefRaw<infer D> ? D :
     0
 }
@@ -70,6 +99,7 @@ export function resolveArg(
     case 'request':     return request;
     case 'reply':       return response;
     case 'container':   return diContainer;
+    case 'custom':      return def.resolve(request, response, diContainer);
     case 'schema':
       return {
         params: request.params,

@@ -198,7 +198,7 @@ export function registerControllerRouter(
           url,
           options,
           async (req, resp) => {
-            const args = params.map(p => resolveArg(p, req, resp, container));
+            const args = await Promise.all(params.map(p => resolveArg(p, req, resp, container)));
             const result = await instance[route.handler].apply(instance, args);
 
             if(!resp.sent){
