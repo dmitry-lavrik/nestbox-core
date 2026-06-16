@@ -198,7 +198,21 @@ export function registerControllerRouter(
           url,
           options,
           async (req, resp) => {
-            const args = await Promise.all(params.map(p => resolveArg(p, req, resp, container)));
+            /**
+             * Only a custom() resolver may be async, so only its result is
+             * awaited. Built-in values are taken as-is — crucially the
+             * FastifyReply, which is itself thenable: awaiting it (or letting
+             * Promise.all chain it) deadlocks, since its `then` settles only
+             * once the reply is sent, which never happens here first.
+             */
+            const args: unknown[] = [];
+
+            for(const p of params){
+              const value = resolveArg(p, req, resp, container);
+
+              args.push(p.from === 'custom' ? await value : value);
+            }
+
             const result = await instance[route.handler].apply(instance, args);
 
             if(!resp.sent){

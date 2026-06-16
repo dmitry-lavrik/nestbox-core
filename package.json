@@ -1,6 +1,6 @@
 {
   "name": "nestbox-core",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "NestJS-style decorators, DI container and router for Fastify + TypeBox.",
   "author": "Dmitry Lavrik",
   "license": "MIT",
